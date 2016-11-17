@@ -7,6 +7,7 @@ This hijacks default exceptions to make them work with CPython code.
 from forbiddenfruit import curse
 
 from vanstein.context import _VSContext
+from vanstein.decorators import native_invoke
 
 
 def get_traceback(self):
@@ -28,6 +29,7 @@ curse(BaseException, "__traceback__", property(get_traceback))
 
 # Now we've done that, define the `safe_raise` function.
 
+@native_invoke
 def safe_raise(ctx: _VSContext, exception: BaseException):
     """
     Attempts to "safely" raise an exception into the context.
@@ -47,6 +49,7 @@ def safe_raise(ctx: _VSContext, exception: BaseException):
     return ctx
 
 
+@native_invoke
 def get_ordered_call_stack(end_ctx: _VSContext):
     """
     Gets the ordered call stack from an end context.
