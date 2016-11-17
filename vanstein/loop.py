@@ -82,15 +82,15 @@ class BaseAsyncLoop(object):
 
         next_task = self.running_tasks.popleft()
         assert isinstance(next_task, _VSContext)
-        if next_task.state == VSCtxState.RUNNING:
-            # No need to use safe_raise here.
-            # This will never raise a VS-handled exception, because it's a native invoke function.
-            raise RuntimeError("Current task state is RUNNING - this should never happen!")
-
         if next_task.state is VSCtxState.SUSPENDED:
             # It hasn't reached a wake-up call yet, so re-add it to the end of the deque.
             self.running_tasks.append(next_task)
             return
+
+        if next_task.state == VSCtxState.RUNNING:
+            # No need to use safe_raise here.
+            # This will never raise a VS-handled exception, because it's a native invoke function.
+            raise RuntimeError("Current task state is RUNNING - this should never happen!")
 
         if next_task.state is VSCtxState.PENDING:
             # It's newly created, or otherwise ready. Continue execution.

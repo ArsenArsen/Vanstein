@@ -9,7 +9,6 @@ import enum
 import collections
 import types
 
-
 NO_RESULT = type("NO_RESULT", (), {})
 
 
@@ -27,6 +26,9 @@ class VSCtxState(enum.Enum):
 
     # The result is done.
     FINISHED = 4
+
+    # The context has errored.
+    ERRORED = 5
 
 
 class _VSContext(object):
@@ -51,7 +53,7 @@ class _VSContext(object):
 
         # The result of our underlying function.
         # This is only not NO_RESULT when the state is FINISHED.
-        self.__result = NO_RESULT
+        self._result = NO_RESULT
 
         # Vanstein bytecode internals.
 
@@ -71,6 +73,11 @@ class _VSContext(object):
         # The current instruction pointer.
         # This represents what instruction in the list of instructions is currently being ran.
         self.instruction_pointer = -1
+
+        # The previous context in the frame.
+        # This is used for bubbling exceptions out.
+        # If this is None, it means it has no previous context.
+        self.prev_ctx = None
 
     def fill_args(self, *args):
         """
@@ -102,7 +109,7 @@ class _VSContext(object):
     def result(self):
         if self.state is not VSCtxState.FINISHED:
             raise RuntimeError("Context is not finished.")
-        return self.__result
+        return self._result
 
     @property
     def instructions(self):
@@ -151,11 +158,30 @@ class _VSContext(object):
     def co_argcount(self):
         return self.__code__.co_argcount
 
+    @property
+    def __globals__(self):
+        return self._actual_function.__globals__
+
+    def get_global(self, name: str):
+        """
+        Gets a global from the global list.
+        """
+        try:
+            return self.__globals__[name]
+        except KeyError:
+            return __builtins__[name]
+
     def add_done_callback(self, callback: callable):
         if self.state is VSCtxState.FINISHED:
             raise RuntimeError("Cannot add callback to finished context")
 
         self._done_callback = callback
+
+    def finish(self):
+        try:
+            self._done_callback(self._result)
+        except TypeError:
+            return
 
     def _on_result_cb(self, result: None):
         # Default done callback.
@@ -166,6 +192,18 @@ class _VSContext(object):
         # Switch our state to PENDING.
         # This means we're ready to run on the event loop again.
         self.state = VSCtxState.PENDING
+
+    def inject_exception(self, exception: BaseException):
+        """
+        Injects an exception into the current context.
+
+        This will check if the function can handle this Exception. If it can't, it will set the state of the context
+        to EXCEPTED, effectively cancelling it.
+
+        :param exception: The exception to inject.
+        """
+        # for now, we can't handle exceptions
+        self.state = VSCtxState.ERRORED
 
 
 class VSWrappedFunction(object):
