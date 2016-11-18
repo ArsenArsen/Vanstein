@@ -1,6 +1,7 @@
 """
 The engine class actually runs the bytecode.
 """
+from vanstein.bytecode.vs_exceptions import safe_raise
 
 try:
     import dis
@@ -32,8 +33,8 @@ class VansteinEngine(object):
         """
         fn = context.stack.popleft()
         if not callable(fn):
-            # TODO: safe_raise
-            raise TypeError("'{}' object is not callable".format(fn))
+            safe_raise(context, TypeError("'{}' object is not callable".format(fn)))
+            return
         # Get the number of arguments to pop off of the stack.
         number_of_args = instruction.arg
         args = []
@@ -42,7 +43,11 @@ class VansteinEngine(object):
             args.append(context.stack.popleft())
 
         # Run the function.
-        result = fn(*args)
+        try:
+            result = fn(*args)
+        except BaseException as e:
+            safe_raise(context, e)
+            return
 
         return result
 

@@ -79,6 +79,10 @@ class _VSContext(object):
         # If this is None, it means it has no previous context.
         self.prev_ctx = None
 
+        # Exception handling.
+        self._handling_exception = False
+        self._exception_state = None
+
     def fill_args(self, *args):
         """
         Fill in arguments.
@@ -197,13 +201,14 @@ class _VSContext(object):
         """
         Injects an exception into the current context.
 
-        This will check if the function can handle this Exception. If it can't, it will set the state of the context
-        to EXCEPTED, effectively cancelling it.
+        This does nothing YET. However, it will set `_handling_exception` to True, which will signal the VM that the
+        context is currently in an exception context, and should re-raise when a FINALLY is reached.
 
         :param exception: The exception to inject.
         """
-        # for now, we can't handle exceptions
-        self.state = VSCtxState.ERRORED
+        # Set the current exception state.
+        self._exception_state = exception
+        self._handling_exception = True
 
 
 class VSWrappedFunction(object):
