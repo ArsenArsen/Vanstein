@@ -62,7 +62,7 @@ class _VSContext(object):
 
         # The current stack for this function.
         # This is used when executing bytecode that edits the stack.
-        self.stack = collections.deque()
+        self.stack = collections.deque(maxlen=self.__code__.co_stacksize)
 
         # The current names and varnames.
         # These are only the actual values, NOT the names.
@@ -78,6 +78,10 @@ class _VSContext(object):
         # This is used for bubbling exceptions out.
         # If this is None, it means it has no previous context.
         self.prev_ctx = None
+
+        # The next context in the frame.
+        # This makes the contexts a doubly linked list.
+        self.next_ctx = None
 
         # Exception handling.
         self._handling_exception = False
