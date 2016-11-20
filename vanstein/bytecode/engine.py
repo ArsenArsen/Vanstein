@@ -136,6 +136,8 @@ class VansteinEngine(object):
                 for _ in range(0, next_instruction.arg):
                     args.append(context.pop())
 
+                args = reversed(args)
+
                 new_ctx.fill_args(*args)
 
                 # Pop the function object off, too.
