@@ -141,6 +141,23 @@ def POP_JUMP_IF_FALSE(ctx: _VSContext, instruction: dis.Instruction):
 
     return ctx
 
+
+def POP_JUMP_IF_TRUE(ctx: _VSContext, instruction: dis.Instruction):
+    """
+    Jumps to the specified instruction if True-y is on the top of the stack.
+    """
+
+    i = ctx.pop()
+    if not i:
+        # Falsey, stay where we are.
+        return ctx
+
+    # Jump, again.
+    ctx.instruction_pointer = get_instruction_index_by_offset(ctx, instruction)
+
+    return ctx
+
+
 # endregion
 
 
