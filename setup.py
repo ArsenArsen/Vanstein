@@ -18,5 +18,9 @@ setup(
     license='MIT',
     author='Isaac Dickinson',
     author_email='sun@veriny.tf',
-    description='A Python 3.6+ implementation running on Python 3.3'
+    description='A Python 3.6+ implementation running on Python 3.3',
+    install_requires=[
+        "enum34",
+        "forbiddenfruit"
+    ]
 )
