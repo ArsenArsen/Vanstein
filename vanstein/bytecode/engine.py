@@ -121,6 +121,13 @@ class VansteinEngine(object):
                 new_ctx.prev_ctx = context
                 # Doubly linked list!
                 context.next_ctx = new_ctx
+                # Set the new state to PENDING so it knows to run it on the next run.
+                new_ctx.state = VSCtxState.PENDING
+
+                # Add a callback to the new context.
+                # This is so the loop can schedule execution of the new context soon.
+                new_ctx.add_done_callback(context._on_result_cb)
+                new_ctx.add_exception_callback(context._on_exception_cb)
 
                 # Fill the number of arguments the function call requests.
                 args = []
@@ -132,11 +139,6 @@ class VansteinEngine(object):
                 # Pop the function object off, too.
                 context.pop()
 
-                # Add a callback to the new context, and return it.
-                # This is so the loop can schedule execution of the new context soon.
-                new_ctx.add_done_callback(context._on_result_cb)
-                new_ctx.add_exception_callback(context._on_exception_cb)
-                new_ctx.state = VSCtxState.PENDING
                 return new_ctx
 
             # Else, we run the respective instruction.

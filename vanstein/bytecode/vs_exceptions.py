@@ -45,8 +45,7 @@ def safe_raise(ctx: _VSContext, exception: BaseException):
     :param exception: The exception to raise.
     :return: The context.
     """
-    # todo: set tracebacks
-    # inject the exception
+    # Inject the exception.
     ctx.inject_exception(exception)
     return ctx
 

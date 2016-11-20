@@ -93,6 +93,18 @@ class _VSContext(object):
         # What does this do? It points to where we should go if an exception was raised.
         self.exc_next_pointer = 0
 
+    def _safe_raise(self, exception: TypeError):
+        """
+        Safely raises an exception.
+
+        If this is inside the event loop, it will set this exception to errored.
+        Otherwise, it will raise it normally.
+        """
+        if self.next_ctx is None or self.prev_ctx is None:
+            self.inject_exception(exception)
+        else:
+            raise exception
+
     def fill_args(self, *args):
         """
         Fill in arguments.
@@ -103,9 +115,9 @@ class _VSContext(object):
             try:
                 self.varnames[n] = item
             except IndexError:
-                raise TypeError("{}() takes {} positional arguments but {} were given".format(
+                self._safe_raise(TypeError("{}() takes {} positional arguments but {} were given".format(
                     self._actual_function.__name__, self.__code__.co_argcount, len(args)
-                ))
+                )))
 
         return self
 
@@ -253,6 +265,14 @@ class _VSContext(object):
         # Set the current exception state.
         self._exception_state = exception
         self._handling_exception = True
+
+        if self.prev_ctx is None:
+            # We're all by our lonesomes.
+
+            # This means: PUSH the exception contexts on manually.
+            self.push(exception.__traceback__)
+            self.push(exception.__cause__)
+            self.push(exception)
 
         # Try and move the exception.
         if self.exc_next_pointer:
