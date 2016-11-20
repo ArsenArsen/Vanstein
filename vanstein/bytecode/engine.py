@@ -117,6 +117,11 @@ class VansteinEngine(object):
                     # Wrap the function in a context.
                     new_ctx = _VSContext(bottom_of_stack)
 
+                # Set the previous context, for stack frame chaining.
+                new_ctx.prev_ctx = context
+                # Doubly linked list!
+                context.next_ctx = new_ctx
+
                 # Fill the number of arguments the function call requests.
                 args = []
                 for _ in range(0, next_instruction.arg):
@@ -132,10 +137,6 @@ class VansteinEngine(object):
                 new_ctx.add_done_callback(context._on_result_cb)
                 new_ctx.add_exception_callback(context._on_exception_cb)
                 new_ctx.state = VSCtxState.PENDING
-                # Set the previous context, for stack frame chaining.
-                new_ctx.prev_ctx = context
-                # Doubly linked list!
-                context.next_ctx = new_ctx
                 return new_ctx
 
             # Else, we run the respective instruction.
