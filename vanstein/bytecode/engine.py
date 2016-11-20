@@ -76,7 +76,6 @@ class VansteinEngine(object):
                 return
 
             if context.state is VSCtxState.ERRORED:
-                # TODO: Exception handling
                 return
 
             next_instruction = context.next_instruction()
