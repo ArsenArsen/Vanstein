@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 import platform
 import sys
 
-if platform.python_implementation() != "cpython":
+if platform.python_implementation() != "CPython":
     raise SystemError("Vanstein only runs under CPython.")
 
 if sys.version[0:2] < (3, 3):
