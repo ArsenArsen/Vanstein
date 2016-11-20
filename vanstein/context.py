@@ -274,6 +274,9 @@ class _VSContext(object):
         # Push the result onto TOS.
         self.push(result)
 
+        # Remove our next_ctx.
+        self.next_ctx = None
+
         # Switch our state to PENDING.
         # This means we're ready to run on the event loop again.
         self.state = VSCtxState.PENDING
