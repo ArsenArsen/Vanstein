@@ -113,9 +113,11 @@ class BaseAsyncLoop(object):
                 print("Fatal error in Vanstein:")
                 print("Instruction '{}' is not implemented yet.".format(
                     self.bytecode_engine.current_instruction.opname))
+                print("Function disassembly:")
+                dis.dis(next_task)
                 print("Current context: {}".format(self.bytecode_engine.current_context))
                 print("Current instruction: {}".format(self.bytecode_engine.current_instruction))
-                os._exit(1)
+                raise
             except BaseException as e:
                 print("Fatal error in Vanstein:")
                 traceback.print_exc(file=sys.stdout)
@@ -123,8 +125,7 @@ class BaseAsyncLoop(object):
                 dis.dis(next_task)
                 print("Current context: {}".format(self.bytecode_engine.current_context))
                 print("Current instruction: {}".format(self.bytecode_engine.current_instruction))
-                time.sleep(0.01)
-                os._exit(1)
+                raise
 
         if next_task.state is VSCtxState.FINISHED:
             # Hopefully, we never have to see this.

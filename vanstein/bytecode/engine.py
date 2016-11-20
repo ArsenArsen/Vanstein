@@ -92,6 +92,10 @@ class VansteinEngine(object):
                 # CALL_FUNCTION(arg) => arg is number of positional arguments to use, so pop that off of the stack.
                 bottom_of_stack = context.stack[-(next_instruction.arg + 1)]
 
+                # method wrappers die
+                if type(bottom_of_stack) is type:
+                    bottom_of_stack = bottom_of_stack.__new__
+
                 # Here's some context switching.
                 # First, check if it's a builtin or is a native invoke.
                 if inspect.isbuiltin(bottom_of_stack) or hasattr(bottom_of_stack, "_native_invoke"):
