@@ -167,6 +167,8 @@ class _VSContext(object):
                                                                               self.instruction_pointer,
                                                                               self.stack)
 
+    # Bytecode properties.
+
     @property
     def __code__(self) -> types.CodeType:
         """
@@ -189,6 +191,51 @@ class _VSContext(object):
     @property
     def co_argcount(self):
         return self.__code__.co_argcount
+
+    # Frame properties.
+    @property
+    def f_back(self) -> '_VSContext':
+        return self.prev_ctx
+    
+    @property
+    def f_builtins(self):
+        return __builtins__
+    
+    @property
+    def f_globals(self):
+        return self.__globals__
+    
+    @property
+    def f_lasti(self):
+        return self.instructions[self.instruction_pointer].offset
+
+    def _get_current_line_number(self):
+        starts_line = self.instructions[self.instruction_pointer].starts_line
+        local_pointer = self.instruction_pointer - 1
+
+        while not starts_line:
+            if local_pointer < 0:
+                return None
+
+            starts_line = self.instructions[local_pointer].starts_line
+            local_pointer -= 1
+
+        return starts_line
+
+    @property
+    def f_lineno(self):
+        i = self._get_current_line_number()
+        return i
+
+    f_code = __code__
+    
+    @property
+    def f_trace(self):
+        return None
+    
+    @property
+    def f_restricted(self):
+        return 0
 
     @property
     def __globals__(self):

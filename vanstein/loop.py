@@ -167,7 +167,10 @@ class BaseAsyncLoop(object):
             self._running = False
 
         if function.state is VSCtxState.ERRORED:
-            raise function._exception_state
+            traceback.print_exception(type(function._exception_state),
+                                      function._exception_state,
+                                      function._exception_state._tb)
+            return None
 
         if function.state is VSCtxState.RUNNING:
             raise RuntimeError("Context {} never completed".format(function))
