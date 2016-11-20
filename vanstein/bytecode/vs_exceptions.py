@@ -21,7 +21,10 @@ def get_traceback(self):
         return self._tb
     except AttributeError:
         # Explicit super() call otherwise CPython freaks out.
-        return super(BaseException, self).__traceback__
+        try:
+            return super(BaseException, self).__traceback__
+        except AttributeError:
+            return None
 
 
 curse(BaseException, "__traceback__", property(get_traceback))
@@ -45,7 +48,6 @@ def safe_raise(ctx: _VSContext, exception: BaseException):
     # todo: set tracebacks
     # inject the exception
     ctx.inject_exception(exception)
-    # this will set the state to EXCEPTION, which the event loop will catch and bubble up.
     return ctx
 
 

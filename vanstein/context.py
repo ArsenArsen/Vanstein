@@ -87,6 +87,12 @@ class _VSContext(object):
         self._handling_exception = False
         self._exception_state = None
 
+        self._exception_callback = None
+
+        # The next exception pointer.
+        # What does this do? It points to where we should go if an exception was raised.
+        self.exc_next_pointer = 0
+
     def fill_args(self, *args):
         """
         Fill in arguments.
@@ -185,6 +191,12 @@ class _VSContext(object):
 
         self._done_callback = callback
 
+    def add_exception_callback(self, callback: callable):
+        if self.state is VSCtxState.FINISHED:
+            raise RuntimeError("Cannot add callback to finished context")
+
+        self._exception_callback = callback
+
     def finish(self):
         try:
             self._done_callback(self._result)
@@ -201,6 +213,28 @@ class _VSContext(object):
         # This means we're ready to run on the event loop again.
         self.state = VSCtxState.PENDING
 
+    def _on_exception_cb(self, exception: BaseException):
+        # Put the traceback on the stack -> TOS2.
+        self.push(exception.__traceback__)
+        # Put the __from__ on the stack -> TOS1.
+        self.push(exception.__cause__)
+        # Put the exception on the stack -> TOS.
+        self.push(exception)
+
+        # Set our exception state.
+        self._exception_state = exception
+        self._handling_exception = True
+
+        # Set the current pointer to the current exception pointer.
+        if self.exc_next_pointer:
+            self.instruction_pointer = self.exc_next_pointer
+            # Switch ourselves to PENDING, so that the event loop knows we're ready to run again.
+            self.state = VSCtxState.PENDING
+        else:
+            # There's no exc_next_pointer.
+            # This means we can't jump to anywhere; instead we set our state to ERRORED.
+            self.state = VSCtxState.ERRORED
+
     def inject_exception(self, exception: BaseException):
         """
         Injects an exception into the current context.
@@ -213,6 +247,29 @@ class _VSContext(object):
         # Set the current exception state.
         self._exception_state = exception
         self._handling_exception = True
+
+        # Try and move the exception.
+        if self.exc_next_pointer:
+            self.instruction_pointer = self.exc_next_pointer
+        else:
+            # Raise the exception instead.
+            self.raise_exception(exception)
+
+    def raise_exception(self, exception: BaseException):
+        """
+        Raises an exception to the previous function in the calling chain.
+
+        This calls the on_exception_callback, and sets our state to ERRORED.
+
+        This is called in one of two places:
+            1) END_FINALLY is called with the exception state being None.
+            2) safe_raise is called with the exception state being None.
+
+        """
+        self.state = VSCtxState.ERRORED
+
+        if self._exception_callback:
+            self._exception_callback(exception)
 
 
 class VSWrappedFunction(object):

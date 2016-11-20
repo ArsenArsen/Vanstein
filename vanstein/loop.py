@@ -12,8 +12,15 @@ The way the Vanstein event loop works:
        function's context.
        Then the loop will pluck the top-most function from the top of the deque, and run it.
 """
+import dis
+import os
+import traceback
 import warnings
 from collections import deque
+
+import time
+
+import sys
 
 from vanstein.bytecode.engine import VansteinEngine
 from vanstein.context import _VSContext, VSCtxState
@@ -63,6 +70,8 @@ class BaseAsyncLoop(object):
         elif context.state in [VSCtxState.SUSPENDED, VSCtxState.PENDING]:
             # Add it to the end of the deque again.
             self.running_tasks.append(context)
+        elif context.state is VSCtxState.ERRORED:
+            pass
         else:
             warnings.warn("Caught running context - this is not good!")
             self.running_tasks.append(context)
@@ -76,6 +85,9 @@ class BaseAsyncLoop(object):
 
         This is an internal function and should not be called.
         """
+        if not self._running:
+            raise RuntimeError("Loop is not running.")
+
         if not self.running_tasks:
             # TODO: Handle loop wind-down.
             return
@@ -95,7 +107,24 @@ class BaseAsyncLoop(object):
         if next_task.state is VSCtxState.PENDING:
             # It's newly created, or otherwise ready. Continue execution.
             # This should automatically pop or push it as appropriate.
-            return self._start_execution(next_task)
+            try:
+                return self._start_execution(next_task)
+            except NotImplementedError as e:
+                print("Fatal error in Vanstein:")
+                print("Instruction '{}' is not implemented yet.".format(
+                    self.bytecode_engine.current_instruction.opname))
+                print("Current context: {}".format(self.bytecode_engine.current_context))
+                print("Current instruction: {}".format(self.bytecode_engine.current_instruction))
+                os._exit(1)
+            except BaseException as e:
+                print("Fatal error in Vanstein:")
+                traceback.print_exc(file=sys.stdout)
+                print("Function disassembly:")
+                dis.dis(next_task)
+                print("Current context: {}".format(self.bytecode_engine.current_context))
+                print("Current instruction: {}".format(self.bytecode_engine.current_instruction))
+                time.sleep(0.01)
+                os._exit(1)
 
         if next_task.state is VSCtxState.FINISHED:
             # Hopefully, we never have to see this.
@@ -126,11 +155,16 @@ class BaseAsyncLoop(object):
         # Place it onto the task queue.
         self.running_tasks.append(function)
 
+        self._running = True
+
         # We still have a reference, so run_forever.
         try:
             self.run_forever()
         finally:
             self._running = False
+
+        if function.state is VSCtxState.ERRORED:
+            raise function._exception_state
 
         if function.state is VSCtxState.RUNNING:
             raise RuntimeError("Context {} never completed".format(function))

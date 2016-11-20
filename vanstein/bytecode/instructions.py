@@ -4,10 +4,12 @@ Welcome to hell!
 Each instruction takes two items: the dis.Instruction, and the _VSContext.
 They are responsible for loading everything.
 """
+import sys
 import dis
 
 from vanstein.bytecode.vs_exceptions import safe_raise
-from vanstein.context import _VSContext, VSCtxState
+from vanstein.context import _VSContext, VSCtxState, NO_RESULT
+from vanstein.util import get_instruction_index_by_offset
 
 
 def LOAD_GLOBAL(ctx: _VSContext, instruction: dis.Instruction):
@@ -34,13 +36,20 @@ def LOAD_CONST(ctx: _VSContext, instruction: dis.Instruction):
 
 
 def LOAD_FAST(ctx: _VSContext, instruction: dis.Instruction):
-    ctx.push(ctx.varnames[instruction.arg])
+    """
+    Loads from VARNAMES.
+    """
+    item = ctx.varnames[instruction.arg]
+    if item == NO_RESULT:
+        safe_raise(ctx, NameError("name '{}' is not defined".format(ctx.co_varnames[instruction.arg])))
+        return ctx
+    ctx.push(item)
     return ctx
 
 
 def POP_TOP(ctx: _VSContext, instruction: dis.Instruction):
     """
-    Simple, this one.
+    Pops off the top of the stack.
     """
     ctx.pop()
     return ctx
@@ -64,3 +73,97 @@ def RETURN_VALUE(ctx: _VSContext, instruction: dis.Instruction):
     ctx.state = VSCtxState.FINISHED
 
     return ctx
+
+
+# region jumps
+# Instructions that perform updating of the instruction pointer.
+
+def JUMP_FORWARD(ctx: _VSContext, instruction: dis.Instruction):
+    """
+    Jumps forward to the specified instruction.
+    """
+    ctx.instruction_pointer = get_instruction_index_by_offset(ctx, instruction)
+
+    return ctx
+
+
+# endregion
+
+
+# region Stubs
+# Instructions that do nothing currently.
+
+def POP_BLOCK(ctx: _VSContext, instruction: dis.Instruction):
+    return ctx
+
+
+# endregion
+
+# region Exception handling
+# Exception handling.
+# These are all part of the Vanstein bootleg exception system.
+
+def SETUP_EXCEPT(ctx: _VSContext, instruction: dis.Instruction):
+    """
+    Sets a context up for an except.
+    """
+    # Update the exception pointer with the calculated offset.
+    # This is where we will jump to if an error is encountered.
+    ctx.exc_next_pointer = get_instruction_index_by_offset(ctx, instruction)
+
+    return ctx
+
+
+def POP_EXCEPT(ctx: _VSContext, instruction: dis.Instruction):
+    """
+    Pops an except block.
+    """
+    # Here, we can make several assumptions:
+    # 1) The exception has been handled.
+    # 2) We can empty the exception state.
+    # 3) The function can continue on as normal.
+
+    # This means the exception state is cleared, handling_exception is removed, and it is safe to jump forward as
+    # appropriate.
+    ctx._exception_state = None
+    ctx._handling_exception = False
+
+    # Also, remove the exception pointer.
+    # That way, it won't try to safely handle an exception that happens later on.
+    ctx.exc_next_pointer = None
+
+    return ctx
+
+
+def RAISE_VARARGS(ctx: _VSContext, instruction: dis.Instruction):
+    """
+    Raises an exception to either the current scope or the outer scope.
+    """
+    # This is relatively simple.
+    # We ignore the argc == 3, and pretend it's argc == 2
+    argc = instruction.arg
+    if argc == 3:
+        # fuck you
+        ctx.pop()
+        argc = 2
+
+    if argc == 2:
+        # FROM exception is Top of stack now.
+        fr = ctx.pop()
+        # The real exception is top of stack now.
+        exc = ctx.pop()
+        exc.__cause__ = fr
+
+    elif argc == 1:
+        exc = ctx.pop()
+    else:
+        # Bare raise.
+        exc = ctx._exception_state
+
+    # Inject the exception.
+    safe_raise(ctx, exc)
+    # Raise the exception.
+
+    return exc
+
+# endregion

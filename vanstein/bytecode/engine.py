@@ -31,16 +31,18 @@ class VansteinEngine(object):
         """
         Invokes a function natively.
         """
-        fn = context.stack.popleft()
-        if not callable(fn):
-            safe_raise(context, TypeError("'{}' object is not callable".format(fn)))
-            return
         # Get the number of arguments to pop off of the stack.
         number_of_args = instruction.arg
         args = []
         for x in range(0, number_of_args):
             # Pop each argument off of the stack.
-            args.append(context.stack.popleft())
+            args.append(context.stack.pop())
+
+        # Now pop the function, which is underneath all the others.
+        fn = context.stack.pop()
+        if not callable(fn):
+            safe_raise(context, TypeError("'{}' object is not callable".format(fn)))
+            return
 
         # Run the function.
         try:
@@ -52,7 +54,7 @@ class VansteinEngine(object):
         return result
 
     @native_invoke
-    def run_context(self, context: _VSContext) -> list:
+    def run_context(self, context: _VSContext) -> _VSContext:
         """
         Runs the current bytecode for a context.
 
@@ -79,8 +81,6 @@ class VansteinEngine(object):
             assert isinstance(next_instruction, dis.Instruction)
             self.current_instruction = next_instruction
 
-            #print(self.current_instruction, self.current_context)
-
             # First, we check if we need to context switch.
             # Check if it's CALL_FUNCTION.
             if next_instruction.opname == "CALL_FUNCTION":
@@ -88,8 +88,9 @@ class VansteinEngine(object):
 
                 # We need to context switch, so suspend this current one.
                 context.state = VSCtxState.SUSPENDED
-                # Get BOS.
-                bottom_of_stack = context.stack[0]
+                # Get STACK[-arg]
+                # CALL_FUNCTION(arg) => arg is number of positional arguments to use, so pop that off of the stack.
+                bottom_of_stack = context.stack[-(next_instruction.arg + 1)]
 
                 # Here's some context switching.
                 # First, check if it's a builtin or is a native invoke.
@@ -112,14 +113,25 @@ class VansteinEngine(object):
                     # Wrap the function in a context.
                     new_ctx = _VSContext(bottom_of_stack)
 
-                # Either way, pop it off.
+                # Fill the number of arguments the function call requests.
+                args = []
+                for _ in range(0, next_instruction.arg):
+                    args.append(context.pop())
+
+                new_ctx.fill_args(*args)
+
+                # Pop the function object off, too.
+                context.pop()
 
                 # Add a callback to the new context, and return it.
                 # This is so the loop can schedule execution of the new context soon.
                 new_ctx.add_done_callback(context._on_result_cb)
+                new_ctx.add_exception_callback(context._on_exception_cb)
                 new_ctx.state = VSCtxState.PENDING
                 # Set the previous context, for stack frame chaining.
                 new_ctx.prev_ctx = context
+                # Doubly linked list!
+                context.next_ctx = new_ctx
                 return new_ctx
 
             # Else, we run the respective instruction.
