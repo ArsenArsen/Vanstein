@@ -38,6 +38,8 @@ class VansteinEngine(object):
             # Pop each argument off of the stack.
             args.append(context.stack.pop())
 
+        args = reversed(args)
+
         # Now pop the function, which is underneath all the others.
         fn = context.stack.pop()
         if not callable(fn):
