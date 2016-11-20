@@ -78,7 +78,6 @@ class VansteinEngine(object):
                 return
 
             next_instruction = context.next_instruction()
-            assert isinstance(next_instruction, dis.Instruction)
             self.current_instruction = next_instruction
 
             # First, we check if we need to context switch.

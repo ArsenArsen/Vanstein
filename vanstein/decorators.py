@@ -14,8 +14,6 @@ def native_invoke(func):
     This has several issues you must be aware of:
 
         - You cannot pause the function once it has started.
-        - This function cannot be a generator.
-        - Any exceptions raised will be handled by CPython, NOT Vanstein.
 
     The only exception (no pun intended) to that last rule are built-in functions, which will attempt to handle
     exceptions properly inside the VS bytecode context.
@@ -23,11 +21,6 @@ def native_invoke(func):
     :param func: The function to decorate.
     :return: A modified function object.
     """
-    # Make sure it's not a generator.
-    # Generators have flag 0x20 set on co_flags.
-    if func.__code__.co_flags & 0x20:
-        raise TypeError("Cannot native_invoke a generator")
-
     # lol this is all we do
     func._native_invoke = True
     return func

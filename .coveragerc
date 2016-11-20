@@ -1,0 +1,3 @@
+# Coverage RC
+[run]
+omit = vanstein/backports/*
