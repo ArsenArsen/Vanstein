@@ -7,6 +7,8 @@ They are responsible for loading everything.
 import sys
 import dis
 
+from collections import Iterable
+
 from vanstein.bytecode.vs_exceptions import safe_raise
 from vanstein.context import _VSContext, VSCtxState, NO_RESULT
 from vanstein.util import get_instruction_index_by_offset
@@ -60,7 +62,8 @@ def DUP_TOP(ctx: _VSContext, instruction: dis.Instruction):
     Duplicates the top-most item on the stack.
     """
     item = ctx.pop()
-    ctx.push(item) and ctx.push(item)
+    ctx.push(item)
+    ctx.push(item)
     return ctx
 
 
@@ -81,6 +84,34 @@ def RETURN_VALUE(ctx: _VSContext, instruction: dis.Instruction):
     ctx._result = ctx.pop()
     ctx.state = VSCtxState.FINISHED
 
+    ctx._handling_exception = False
+
+    return ctx
+
+
+def COMPARE_OP(ctx: _VSContext, instruction: dis.Instruction):
+    """
+    Implements comparison operators.
+    """
+    # TODO: Rewrite COMPARE_OP into Vanstein-ran function calls.
+    # TODO: Add all of the comparison functions.
+    if instruction.arg == 10:
+        # Pop the too match off.
+        to_match = ctx.pop()
+        # This is what we check.
+        raised = ctx.pop()
+
+        if not isinstance(to_match, Iterable):
+            to_match = (to_match,)
+
+        for e in to_match:
+            # PyType_IsSubType
+            if issubclass(type(raised), e):
+                ctx.push(True)
+                break
+        else:
+            ctx.push(False)
+
     return ctx
 
 
@@ -95,6 +126,20 @@ def JUMP_FORWARD(ctx: _VSContext, instruction: dis.Instruction):
 
     return ctx
 
+
+def POP_JUMP_IF_FALSE(ctx: _VSContext, instruction: dis.Instruction):
+    """
+    Jumps to the specified instruction if False-y is on the top of the stack.
+    """
+    i = ctx.pop()
+    if i:
+        # Truthy, don't jump.
+        return ctx
+
+    # Jump!
+    ctx.instruction_pointer = get_instruction_index_by_offset(ctx, instruction)
+
+    return ctx
 
 # endregion
 
