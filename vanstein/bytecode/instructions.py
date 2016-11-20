@@ -55,6 +55,15 @@ def POP_TOP(ctx: _VSContext, instruction: dis.Instruction):
     return ctx
 
 
+def DUP_TOP(ctx: _VSContext, instruction: dis.Instruction):
+    """
+    Duplicates the top-most item on the stack.
+    """
+    item = ctx.pop()
+    ctx.push(item) and ctx.push(item)
+    return ctx
+
+
 def STORE_FAST(ctx: _VSContext, instruction: dis.Instruction):
     """
     Stores data in co_varnames.
