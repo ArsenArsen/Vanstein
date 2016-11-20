@@ -100,7 +100,12 @@ class _VSContext(object):
         This sets VARNAMES up to len(args) with these values.
         """
         for n, item in enumerate(args):
-            self.varnames[n] = item
+            try:
+                self.varnames[n] = item
+            except IndexError:
+                raise TypeError("{}() takes {} positional arguments but {} were given".format(
+                    self._actual_function.__name__, self.__code__.co_argcount, len(args)
+                ))
 
         return self
 
@@ -145,9 +150,10 @@ class _VSContext(object):
         return self.current_instruction
 
     def __repr__(self):
-        return "<_VSContext state={} function={} pointer={}>".format(self.state,
-                                                                     self._actual_function,
-                                                                     self.instruction_pointer)
+        return "<_VSContext state={} function={} pointer={} stack={}>".format(self.state,
+                                                                              self._actual_function,
+                                                                              self.instruction_pointer,
+                                                                              self.stack)
 
     @property
     def __code__(self) -> types.CodeType:
