@@ -5,7 +5,7 @@ import sys
 if platform.python_implementation() != "CPython":
     raise SystemError("Vanstein only runs under CPython.")
 
-if sys.version[0:2] < (3, 3):
+if sys.version_info[0:2] < (3, 3):
     raise RuntimeError("Vanstein only runs on CPython 3.3 or above.")
 
 import vanstein
