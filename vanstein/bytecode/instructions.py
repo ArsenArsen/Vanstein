@@ -23,7 +23,7 @@ def LOAD_GLOBAL(ctx: _VSContext, instruction: dis.Instruction):
         item = ctx.get_global(name)
     except KeyError:
         # todo: safe_raise
-        return safe_raise(ctx, NameError("name '{}' not defined".format(name)))
+        return safe_raise(ctx, NameError("name '{}' is not defined".format(name)))
 
     ctx.push(item)
     return ctx
