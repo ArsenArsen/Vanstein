@@ -35,6 +35,9 @@ Very little modification is required.
 import vanstein
 from vanstein.decorators import async_func
 
+# This call is essential!
+vanstein.hijack()
+
 import my.code
 
 # It is recommended that you create an entry point instead of running
@@ -50,7 +53,12 @@ sys.exit(loop.run(entry_point(*sys.argv)))
 
 ### FAQ
 
-**NotImplementedError: <opcode>**
+**NotImplementedError: \<opcode\>**
 
 This means your code is using a CPython feature that isn't currently supported inside Vanstein.  
 Either upgade, or wait for the feature to be implemented. Vanstein aims to be a 1<->1 replication of CPython.
+
+**AttributeError: 'module' object has no attribute 'Instruction'**
+
+This means you forgot to run `vanstein.hijack()`. This function call is very important, as it replaces certain
+parts of the CPython runtime to make things work more seamlessly.
