@@ -154,6 +154,8 @@ class BaseAsyncLoop(object):
         if self._closed:
             raise RuntimeError("Loop is closed")
         # Place it onto the task queue.
+        if not isinstance(function, _VSContext):
+            raise TypeError("Function must be a _VSContext")
         self.running_tasks.append(function)
 
         self._running = True
