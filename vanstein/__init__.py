@@ -1,6 +1,8 @@
 """
 How hacky.
 """
+from vanstein.backports import apply_backports
+
 __version__ = "0.1.0"
 
 
@@ -16,5 +18,4 @@ def hijack():
     # Hijack platform._sys_version().
     platform._sys_version = vanstein_sys_version
 
-    from vanstein.backports import apply_backports
     apply_backports()

@@ -5,7 +5,11 @@ Each instruction takes two items: the dis.Instruction, and the _VSContext.
 They are responsible for loading everything.
 """
 import sys
-import dis
+try:
+    import dis
+    dis.Instruction
+except AttributeError:
+    from vanstein.backports import dis
 
 from collections import Iterable
 

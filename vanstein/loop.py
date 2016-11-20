@@ -12,7 +12,13 @@ The way the Vanstein event loop works:
        function's context.
        Then the loop will pluck the top-most function from the top of the deque, and run it.
 """
-import dis
+# This is explicitly called in several places - hijack doesn't always work.
+try:
+    import dis
+    dis.Instruction
+except AttributeError:
+    from vanstein.backports import dis
+
 import os
 import traceback
 import warnings

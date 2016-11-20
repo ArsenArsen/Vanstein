@@ -1,7 +1,12 @@
 """
 Contexts contain the state of a suspended coroutine.
 """
-import dis
+try:
+    import dis
+    dis.Instruction
+except AttributeError:
+    from vanstein.backports import dis
+
 # This uses Enum34 for Python 3.3 and below.
 import enum
 

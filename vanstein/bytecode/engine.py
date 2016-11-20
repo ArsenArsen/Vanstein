@@ -5,7 +5,6 @@ from vanstein.bytecode.vs_exceptions import safe_raise
 
 try:
     import dis
-
     dis.Instruction
 except AttributeError:
     from vanstein.backports import dis
