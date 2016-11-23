@@ -13,18 +13,18 @@ The way the Vanstein event loop works:
        Then the loop will pluck the top-most function from the top of the deque, and run it.
 """
 # This is explicitly called in several places - hijack doesn't always work.
+import threading
+
 try:
     import dis
+
     dis.Instruction
 except AttributeError:
     from vanstein.backports import dis
 
-import os
 import traceback
 import warnings
 from collections import deque
-
-import time
 
 import sys
 
@@ -33,12 +33,20 @@ from vanstein.context import _VSContext, VSCtxState
 from vanstein.decorators import native_invoke
 
 
+class LoopLocal(threading.local):
+    """
+    The local used for global loop storage.
+    """
+    loop = None  # type: BaseAsyncLoop
+
+
 class BaseAsyncLoop(object):
     """
     The basic async loop.
 
     This implements everything that is required.
     """
+
     def __init__(self):
         self._closed = False
 
@@ -183,3 +191,19 @@ class BaseAsyncLoop(object):
 
         # If we can, return the result of the function.
         return function.result
+
+
+def create_event_loop(**kwargs):
+    return BaseAsyncLoop(**kwargs)
+
+
+def set_event_loop(loop: BaseAsyncLoop):
+    LoopLocal.loop = loop
+
+
+def get_event_loop():
+    if LoopLocal.loop:
+        return LoopLocal.loop
+
+    set_event_loop(create_event_loop())
+    return LoopLocal.loop
