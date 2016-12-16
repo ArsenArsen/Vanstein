@@ -4,16 +4,10 @@ Welcome to hell!
 Each instruction takes two items: the dis.Instruction, and the _VSContext.
 They are responsible for loading everything.
 """
-import sys
-try:
-    import dis
-    dis.Instruction
-except AttributeError:
-    from vanstein.backports import dis
+import types
+import dis
 
-from collections import Iterable
-
-from vanstein.bytecode.vs_exceptions import safe_raise
+from vanstein.interpreter.vs_exceptions import safe_raise
 from vanstein.context import _VSContext, VSCtxState, NO_RESULT
 from vanstein.util import get_instruction_index_by_offset
 
@@ -53,6 +47,19 @@ def LOAD_FAST(ctx: _VSContext, instruction: dis.Instruction):
     return ctx
 
 
+def LOAD_NAME(ctx: _VSContext, instruction: dis.Instruction):
+    """
+    Loads from NAMES.
+    """
+    item = ctx.names[instruction.arg]
+    if item == NO_RESULT:
+        safe_raise(ctx, NameError("name '{}' is not defined".format(ctx.co_names[instruction.arg])))
+        return ctx
+
+    ctx.push(item)
+    return ctx
+
+
 def POP_TOP(ctx: _VSContext, instruction: dis.Instruction):
     """
     Pops off the top of the stack.
@@ -76,6 +83,11 @@ def STORE_FAST(ctx: _VSContext, instruction: dis.Instruction):
     Stores data in co_varnames.
     """
     ctx.varnames[instruction.arg] = ctx.pop()
+    return ctx
+
+
+def STORE_NAME(ctx: _VSContext, instruction: dis.Instruction):
+    ctx.names[instruction.arg] = ctx.pop()
     return ctx
 
 
@@ -104,6 +116,8 @@ def COMPARE_OP(ctx: _VSContext, instruction: dis.Instruction):
         to_match = ctx.pop()
         # This is what we check.
         raised = ctx.pop()
+
+        from collections import Iterable
 
         if not isinstance(to_match, Iterable):
             to_match = (to_match,)
@@ -241,4 +255,12 @@ def RAISE_VARARGS(ctx: _VSContext, instruction: dis.Instruction):
 
     return exc
 
+
 # endregion
+
+def MAKE_FUNCTION(ctx: _VSContext, instruction: dis.Instruction):
+    """
+    Called to create a new function.
+
+    This assumes a name is on TOS, and that a code object is on TOS2.
+    """

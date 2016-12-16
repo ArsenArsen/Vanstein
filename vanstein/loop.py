@@ -28,7 +28,7 @@ from collections import deque
 
 import sys
 
-from vanstein.bytecode.engine import VansteinEngine
+from vanstein.interpreter.engine import VansteinEngine
 from vanstein.context import _VSContext, VSCtxState
 from vanstein.decorators import native_invoke
 
