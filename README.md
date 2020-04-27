@@ -56,7 +56,7 @@ sys.exit(loop.run(entry_point(*sys.argv)))
 **NotImplementedError: \<opcode\>**
 
 This means your code is using a CPython feature that isn't currently supported inside Vanstein.  
-Either upgade, or wait for the feature to be implemented. Vanstein aims to be a 1<->1 replication of CPython.
+Either upgrade, or wait for the feature to be implemented. Vanstein aims to be a 1<->1 replication of CPython.
 
 **AttributeError: 'module' object has no attribute 'Instruction'**
 
